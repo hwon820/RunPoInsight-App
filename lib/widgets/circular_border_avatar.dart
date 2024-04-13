@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// 프로필 사진용. 아직까지 큰 의미는 X
 class CircularBorderAvatar extends StatelessWidget {
   const CircularBorderAvatar(this.image,
       {Key? key, this.size = 32, required this.borderColor})
@@ -13,9 +14,9 @@ class CircularBorderAvatar extends StatelessWidget {
       decoration: BoxDecoration(
           color: Colors.transparent,
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(50),
           backgroundBlendMode: BlendMode.clear,
-          border: Border.all(color: borderColor, width: 2),
+          border: Border.all(color: borderColor, width: 3),
           image: DecorationImage(image: NetworkImage(image))),
       width: size,
       height: size,
