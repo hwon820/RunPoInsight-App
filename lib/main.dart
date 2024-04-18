@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:dynamic_color_demo/service_pages/Cumulated_report.dart';
 import 'package:dynamic_color_demo/service_pages/analysis_page.dart';
@@ -8,14 +10,28 @@ import 'package:dynamic_color_demo/widgets/my_container.dart';
 import 'package:dynamic_color_demo/service_pages/my_info.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import 'config.dart';
+import 'user_model.dart';
 import 'bottombar_pages/notification_page.dart';
 import 'bottombar_pages/bookmark_page.dart';
 import 'bottombar_pages/settings_page.dart';
 
 void main() {
-  runApp(const DynamicColorDemo());
+  Config.init(); // Config 설정 초기화
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => UserModel()),
+    ],
+    child: const DynamicColorDemo(),
+  ));
 }
+
+// void main() {
+//   Config.init();
+//   runApp(const DynamicColorDemo());
+// }
 
 // 돈 터치 영역
 const seedColor = Colors.white;
@@ -100,21 +116,40 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   // 로그인 성공 여부 판단
-  void _attemptLogin() {
-    setState(() {
-      if (_idController.text == 'J' && _passwordController.text == '1234') {
-        // 로그인 성공
+  void _attemptLogin() async {
+    var response = await http.get(
+      Uri.parse('${Config.serverUrl}'), // 서버에서 모든 사용자 데이터를 가져오는 API 주소
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> userDataList = json.decode(response.body);
+      // userDataList는 서버에서 받은 모든 사용자 목록입니다.
+
+      // 입력한 ID와 Password를 가진 사용자를 찾습니다.
+      var userData = userDataList.firstWhere(
+          (user) =>
+              user['identifier'] == _idController.text &&
+              user['password'] == _passwordController.text,
+          orElse: () => null);
+
+      if (userData != null) {
+        // 사용자 데이터를 찾았으면 UserModel에 저장하고 메인 화면으로 이동합니다.
+        Provider.of<UserModel>(context, listen: false).setUser(userData);
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => MainScreen()));
       } else {
-        // 로그인 실패
-        _showErrorMessage(context);
+        // 일치하는 사용자가 없을 경우 로그인 실패 메시지를 보여줍니다.
+        _showErrorMessage(context, "Invalid identifier or password.");
       }
-    });
+    } else {
+      // 서버 연결 실패 시 메시지 표시
+      _showErrorMessage(context, "Failed to connect to the server.");
+    }
   }
 
   // 로그인 실패시 알람 띄우는 함수
-  void _showErrorMessage(BuildContext context) {
+  void _showErrorMessage(BuildContext context, String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -126,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
           content: Text(
-            "아이디 혹은 비밀번호가 틀렸습니다.",
+            message,
             style: TextStyle(
               color: Colors.white,
             ),
@@ -351,6 +386,9 @@ class _MainScreenState extends State<MainScreen> {
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final userModel = Provider.of<UserModel>(context);
+    final name = userModel.name; // 사용자 이름 가져오기
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(outPadding),
@@ -374,7 +412,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Expanded(child: Container()),
                 CircularBorderAvatar(
-                  'https://i.ibb.co/qpYrTCr/빈-프로필.png',
+                  'https://i.ibb.co/YjNpQq7/cloudJ.jpg',
                   borderColor: Colors.black,
                   size: 45,
                 )
@@ -384,7 +422,7 @@ class HomeScreen extends StatelessWidget {
               height: outPadding,
             ),
             Text(
-              ' 안녕하세요! 이범준 님,',
+              ' 안녕하세요! $name 님,',
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

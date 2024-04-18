@@ -28,7 +28,7 @@ class MyContainer extends StatelessWidget {
         child: child,
         decoration: BoxDecoration(
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: borderRadius ?? BorderRadius.circular(16),
           color: color ?? Color.fromARGB(255, 235, 235, 235),
           gradient: gradient,
 
