@@ -1,6 +1,8 @@
 // models/user.dart
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import '../utils.dart';
 
 class UserModel with ChangeNotifier {
   String identifier = '';
@@ -26,64 +28,48 @@ class UserModel with ChangeNotifier {
     datas = userJson['datas'];
     notifyListeners(); // 리스너에게 상태 변경을 알림
   }
+
+  // Future<void> sendDataToServer(Map<String, dynamic> data) async {
+  //   var url = Uri.parse('http://192.168.0.13:5000/users');
+  //   var response = await http.post(url,
+  //       headers: {'Content-Type': 'application/json'}, body: json.encode(data));
+
+  //   if (response.statusCode == 200) {
+  //     print("Data successfully sent to server");
+  //   } else {
+  //     print("Failed to send data to server: ${response.statusCode}");
+  //   }
+  // }
+
+  Future<void> updateRunDetails(
+      String baseUrl, int userId, Map<String, dynamic> runDetails) async {
+    var url = Uri.parse('$baseUrl/$userId/update_runs');
+    var response = await http.patch(url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(runDetails));
+
+    if (response.statusCode == 200) {
+      print("Runs updated successfully");
+    } else {
+      print("Failed to update runs: ${response.statusCode}, ${response.body}");
+    }
+  }
+
+  void updateMarathonDetails(
+      String name, String date, Map<String, dynamic> newDetails) {
+    // 로그인된 사용자의 데이터만 찾아 업데이트
+    if (this.name == name) {
+      int index = datas.indexWhere((data) => data['date'] == date);
+      if (index != -1) {
+        datas[index] = {...datas[index], ...newDetails};
+        notifyListeners();
+        print("Updated data for $name on $date: ${datas[index]}");
+      } else {
+        print("No record found with the specified date for $name");
+      }
+    } else {
+      print(
+          "Trying to update data for identifier: $identifier, current object identifier: ${this.identifier}");
+    }
+  }
 }
-
-
-// class RunData {
-//   final double cad;
-//   final String date;
-//   final String eventName;
-//   final String footPos;
-//   final String l1Mes;
-//   final String l2Mes;
-//   final String l3Mes;
-//   final String numberImg;
-//   final bool overStride;
-//   final String pace;
-//   final String record;
-//   final String rfid;
-//   final String runType;
-//   final String sMes;
-//   final bool shldImb;
-//   final String videoUrl;
-
-//   RunData({
-//     required this.cad,
-//     required this.date,
-//     required this.eventName,
-//     required this.footPos,
-//     required this.l1Mes,
-//     required this.l2Mes,
-//     required this.l3Mes,
-//     required this.numberImg,
-//     required this.overStride,
-//     required this.pace,
-//     required this.record,
-//     required this.rfid,
-//     required this.runType,
-//     required this.sMes,
-//     required this.shldImb,
-//     required this.videoUrl,
-//   });
-
-//   factory RunData.fromJson(Map<String, dynamic> json) {
-//     return RunData(
-//       cad: json['cad'].toDouble(),
-//       date: json['date'],
-//       eventName: json['event_name'],
-//       footPos: json['foot_pos'],
-//       l1Mes: json['l1_mes'],
-//       l2Mes: json['l2_mes'],
-//       l3Mes: json['l3_mes'],
-//       numberImg: json['number_img'],
-//       overStride: json['over_stride'].toUpperCase() == 'TRUE',
-//       pace: json['pace'],
-//       record: json['record'],
-//       rfid: json['rfid'],
-//       runType: json['run_type'],
-//       sMes: json['s_mes'],
-//       shldImb: json['shld_imb'].toUpperCase() == 'TRUE',
-//       videoUrl: json['video_url'],
-//     );
-//   }
-// }

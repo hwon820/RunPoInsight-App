@@ -86,7 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
               children: [
                 SizedBox(height: 90),
                 Image.network(
-                  'https://i.ibb.co/DQ0356M/logo-beta.png',
+                  'https://i.ibb.co/TPx3NmK/logo-final.png',
                   width: 300,
                   height: 300,
                   fit: BoxFit.contain,
@@ -94,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 SizedBox(height: 20),
                 Text(
                   "Getting ready to run...",
-                  style: TextStyle(color: Colors.white),
+                  style: GoogleFonts.nanumGothic(color: Colors.white),
                 ),
               ],
             ),
@@ -123,10 +123,10 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     if (response.statusCode == 200) {
+      // 서버에서 받은 모든 사용자 목록
       List<dynamic> userDataList = json.decode(response.body);
-      // userDataList는 서버에서 받은 모든 사용자 목록입니다.
 
-      // 입력한 ID와 Password를 가진 사용자를 찾습니다.
+      // 입력한 ID와 Password를 가진 사용자를 찾기
       var userData = userDataList.firstWhere(
           (user) =>
               user['identifier'] == _idController.text &&
@@ -156,13 +156,13 @@ class _LoginPageState extends State<LoginPage> {
         return AlertDialog(
           title: Text(
             "로그인 실패",
-            style: TextStyle(
+            style: GoogleFonts.nanumGothic(
               color: Colors.white,
             ),
           ),
           content: Text(
             message,
-            style: TextStyle(
+            style: GoogleFonts.nanumGothic(
               color: Colors.white,
             ),
           ),
@@ -199,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.all(3.0),
                   child: Text(
                     "ID",
-                    style: TextStyle(
+                    style: GoogleFonts.nanumGothic(
                       color: Colors.white,
                       fontSize: 20,
                     ),
@@ -219,10 +219,11 @@ class _LoginPageState extends State<LoginPage> {
                   ), // TextField 내부에 약간의 여백을 제공
                   child: TextField(
                     controller: _idController,
-                    style: TextStyle(color: Colors.white), // 텍스트 필드 내의 글자 색상 설정
+                    style: GoogleFonts.nanumGothic(
+                        color: Colors.white), // 텍스트 필드 내의 글자 색상 설정
                     decoration: InputDecoration(
                       hintText: "아이디를 입력하세요", // 사용자에게 힌트 제공
-                      hintStyle: TextStyle(
+                      hintStyle: GoogleFonts.nanumGothic(
                           color: Colors.white.withOpacity(0.3)), // 힌트 텍스트 스타일
                       border: InputBorder.none, // 테두리 없앰
                       contentPadding:
@@ -240,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.all(3.0),
                   child: Text(
                     "Password",
-                    style: TextStyle(
+                    style: GoogleFonts.nanumGothic(
                       color: Colors.white,
                       fontSize: 20,
                     ),
@@ -261,10 +262,11 @@ class _LoginPageState extends State<LoginPage> {
                   child: TextField(
                     controller: _passwordController,
                     obscureText: true, // 비밀번호 입력 필드로 만듦
-                    style: TextStyle(color: Colors.white), // 텍스트 필드 내의 글자 색상 설정
+                    style: GoogleFonts.nanumGothic(
+                        color: Colors.white), // 텍스트 필드 내의 글자 색상 설정
                     decoration: InputDecoration(
                       hintText: "비밀번호를 입력하세요", // 사용자에게 힌트 제공
-                      hintStyle: TextStyle(
+                      hintStyle: GoogleFonts.nanumGothic(
                           color: Colors.white.withOpacity(0.3)), // 힌트 텍스트 스타일
                       border: InputBorder.none, // 테두리 없앰
                       contentPadding:
@@ -293,7 +295,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: Text(
                         '로그인',
-                        style: TextStyle(
+                        style: GoogleFonts.nanumGothic(
                           color: Colors.black,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -332,7 +334,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(20, 20, 20, 0),
+      backgroundColor: Color.fromRGBO(22, 22, 22, 1),
       body: IndexedStack(
         index: _selected,
         children: _pages,
@@ -404,7 +406,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Text(
                   " Run Po Insight",
-                  style: TextStyle(
+                  style: GoogleFonts.nanumGothic(
                     color: Color.fromRGBO(255, 94, 0, 1),
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -413,7 +415,7 @@ class HomeScreen extends StatelessWidget {
                 Expanded(child: Container()),
                 CircularBorderAvatar(
                   'https://i.ibb.co/YjNpQq7/cloudJ.jpg',
-                  borderColor: Colors.black,
+                  borderColor: Color.fromRGBO(22, 22, 22, 1),
                   size: 45,
                 )
               ],
@@ -422,20 +424,22 @@ class HomeScreen extends StatelessWidget {
               height: outPadding,
             ),
             Text(
-              ' 안녕하세요! $name 님,',
-              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+              '안녕하세요! $name 님,',
+              style: GoogleFonts.nanumGothic(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28),
             ),
+            const SizedBox(height: 5),
             Text(
-              ' 달릴 준비되셨나요?',
-              style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                    color: Colors.grey,
-                  ),
+              '오늘도 달릴 준비되셨나요?',
+              style: GoogleFonts.nanumGothic(
+                color: Colors.grey,
+                fontSize: 17,
+              ),
             ),
             const SizedBox(
-              height: 12,
+              height: 25,
             ),
             const _TopCard(),
             const SizedBox(
@@ -445,18 +449,19 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    ' 나의 러닝 일지',
+                    '$name 님의 러닝 일지',
                     style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontSize: 23,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold),
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ),
                 _ActionBtn()
               ],
             ),
             const SizedBox(
-              height: 15,
+              height: 12,
             ),
             Expanded(
               child: Row(
@@ -468,6 +473,10 @@ class HomeScreen extends StatelessWidget {
                         Flexible(
                           flex: 3,
                           child: MyContainer(
+                            color: Color.fromRGBO(22, 22, 22, 1),
+                            border: Border.all(
+                                color: Color.fromRGBO(219, 102, 24, 1),
+                                width: 4),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -477,32 +486,27 @@ class HomeScreen extends StatelessWidget {
                             },
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   '누적 기록',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall!
-                                      .copyWith(
-                                        color: Colors.black,
-                                        fontSize: 27,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                  style: GoogleFonts.nanumGothic(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color.fromARGB(255, 250, 230, 206),
+                                  ),
                                 ),
                                 Text(
                                   " ",
-                                  style: TextStyle(fontSize: 2),
+                                  style: GoogleFonts.nanumGothic(fontSize: 4),
                                 ),
                                 Text(
-                                  '나의 결실을 확인하세요',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium!
-                                      .copyWith(
-                                        color: Colors.black,
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                  '최고기록을 향해!',
+                                  style: GoogleFonts.nanumGothic(
+                                    color: Color.fromARGB(255, 250, 230, 206),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ],
                             ),
@@ -512,7 +516,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(
-                    width: outPadding,
+                    width: 15,
                   ),
                   Flexible(
                     child: Column(
@@ -521,6 +525,11 @@ class HomeScreen extends StatelessWidget {
                         Flexible(
                           flex: 2,
                           child: MyContainer(
+                            color: Color.fromRGBO(22, 22, 22, 1),
+                            border: Border.all(
+                              color: Color.fromRGBO(219, 102, 24, 1),
+                              width: 4,
+                            ),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -530,31 +539,27 @@ class HomeScreen extends StatelessWidget {
                             },
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   '내 정보',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall!
-                                      .copyWith(
-                                          color: Colors.black,
-                                          fontSize: 27,
-                                          fontWeight: FontWeight.w800),
+                                  style: GoogleFonts.nanumGothic(
+                                    color: Color.fromARGB(255, 250, 230, 206),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 Text(
                                   " ",
-                                  style: TextStyle(fontSize: 2),
+                                  style: GoogleFonts.nanumGothic(fontSize: 4),
                                 ),
                                 Text(
                                   '맞춤 분석에 사용돼요',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium!
-                                      .copyWith(
-                                        color: Colors.black,
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                  style: GoogleFonts.nanumGothic(
+                                    color: Color.fromARGB(255, 250, 230, 206),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ],
                             ),
@@ -566,7 +571,22 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 27)
+            const SizedBox(height: 35),
+            Row(
+              children: [
+                Container(
+                    height: 60,
+                    width: 334,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    child: Image.asset(
+                      "assets/images/AD.png",
+                      fit: BoxFit.contain,
+                    )),
+              ],
+            ),
+            const SizedBox(height: 5),
           ],
         ),
       ),
@@ -610,6 +630,7 @@ class _TopCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MyContainer(
+      // color: Color.fromRGBO(255, 130, 29, 1),
       onPressed: () {
         Navigator.push(
           context,
@@ -617,12 +638,15 @@ class _TopCard extends StatelessWidget {
         );
       },
       gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        begin: Alignment.bottomRight,
+        end: Alignment.topLeft,
         colors: [
-          Colors.orange[700]!,
+          Colors.orange[800]!,
+          Colors.orange[600]!,
           Colors.orange[500]!,
+          Colors.orange[400]!,
           Colors.orange[300]!,
+          Colors.orange[200]!,
         ],
       ),
       child: Column(
@@ -633,14 +657,14 @@ class _TopCard extends StatelessWidget {
           ),
           Text(
             '자세 분석 결과 조회',
-            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black,
-                ),
+            style: GoogleFonts.nanumGothic(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
           ),
           Text(
-            '내 러닝 습관을 알아보세요',
+            '나의 러닝 습관을 알아보세요',
             style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   color: Colors.black,
                   fontSize: 18,

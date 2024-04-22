@@ -43,6 +43,8 @@ dependencies:
   path_provider: ^2.1.0
   video_player: ^2.7.0
   provider: ^6.1.2
+  http: ^0.13.5
+  intl: ^0.18.1
 
 
 dev_dependencies:
@@ -55,6 +57,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.12.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -69,6 +72,7 @@ flutter:
 
   assets:
     - assets/videos/test1.mp4
+    - assets/images/
 
 
 

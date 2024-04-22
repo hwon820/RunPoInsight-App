@@ -23,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 Text(
-                  "정신머리에도설정이있나요",
+                  "Cattings Page",
                   style: TextStyle(color: Colors.white),
                 ),
               ],

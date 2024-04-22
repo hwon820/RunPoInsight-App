@@ -8,6 +8,7 @@ class MyContainer extends StatelessWidget {
     // Box colors
     this.color,
     this.gradient,
+    this.border,
     this.borderRadius,
     this.onPressed, // 페이지 이동 함수를 정의하는 콜백
   }) : super(key: key);
@@ -16,6 +17,7 @@ class MyContainer extends StatelessWidget {
   final VoidCallback? onPressed;
   final Color? color;
   final Gradient? gradient;
+  final Border? border;
 
   final BorderRadius? borderRadius;
 
@@ -28,6 +30,7 @@ class MyContainer extends StatelessWidget {
         child: child,
         decoration: BoxDecoration(
           shape: BoxShape.rectangle,
+          border: border,
           borderRadius: borderRadius ?? BorderRadius.circular(16),
           color: color ?? Color.fromARGB(255, 235, 235, 235),
           gradient: gradient,

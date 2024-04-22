@@ -1,8 +1,15 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../user_model.dart';
+import '../utils.dart';
 
 // 데이터 유지되게
 
@@ -59,11 +66,36 @@ class _CumulReportState extends State<CumulReport> {
   List<MarathonRecord> _marathonRecords = [];
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _eventController = TextEditingController();
+  String _selectedEvent = '종목 선택';
   final TextEditingController _recordController = TextEditingController();
   final TextEditingController _paceController = TextEditingController();
+
+  final List<String> _eventlist = [
+    '종목 선택',
+    '풀(Full)',
+    '하프(Half)',
+    '10km 로드',
+    '5km'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    loadRecords();
+    _validateSelectedEvent();
+  }
+
+  void _validateSelectedEvent() {
+    if (!_eventlist.contains(_selectedEvent)) {
+      setState(() {
+        _selectedEvent = _eventlist.first;
+      });
+    }
+  }
+
   File? _image;
 
+  // 이미지 가져오기
   Future<void> _pickImage() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -71,6 +103,24 @@ class _CumulReportState extends State<CumulReport> {
       setState(() {
         _image = File(pickedFile.path);
       });
+    }
+  }
+
+  // 이미지 Url로 변경.. 은 어떻게 하지
+
+  // 날짜 선택
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(), // Set the initial date to today's date
+      firstDate: DateTime(
+          2000), // Users can select a date as far back as the year 2000
+      lastDate:
+          DateTime(2100), // Users can select a date up until the year 2100
+    );
+    if (pickedDate != null) {
+      // Format the date and update the text field
+      _dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
     }
   }
 
@@ -83,33 +133,50 @@ class _CumulReportState extends State<CumulReport> {
           MarathonRecord(
             name: _nameController.text,
             date: _dateController.text,
-            event: _eventController.text,
+            event: _selectedEvent,
             record: _recordController.text,
             pace: _paceController.text,
             image: _image,
           ),
         );
+        _validateSelectedEvent(); // 기록을 추가한 후 유효성 검사
       });
       saveRecords(); // 데이터 저장
       _clearFields(); // 필드 초기화
-      Navigator.of(context).pop(); // Close dialog
+      Navigator.of(context).pop(); // 다이얼로그 닫기
     }
+  }
+
+  // 서버에 보내기
+  void _handleUpdate() {
+    UserModel userModel = Provider.of<UserModel>(context, listen: false);
+    Map<String, dynamic> newDetails = {
+      'date': _dateController.text,
+      'event_name': _nameController.text,
+      'number_img': _image?.path, // 이미지 경로만 전송
+      'pace': _paceController.text,
+      'record': _recordController.text,
+      'run_type': _selectedEvent
+    };
+
+    // newDetails를 castMap 함수로 타입 변환하여 String key를 가진 Map으로 변환
+    newDetails = castMap(newDetails);
+
+    // userModel.name을 추가하여 사용자 구분 가능
+    userModel.updateMarathonDetails(
+        userModel.name, _dateController.text, newDetails);
+
+    userModel.updateRunDetails('http://192.168.0.13:5000/users', 1, newDetails);
   }
 
   // 필드 초기화 함수
   void _clearFields() {
     _nameController.clear();
     _dateController.clear();
-    _eventController.clear();
+    _selectedEvent = "종목";
     _recordController.clear();
     _paceController.clear();
     _image = null;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadRecords();
   }
 
   // 기록 삭제 함수
@@ -151,220 +218,245 @@ class _CumulReportState extends State<CumulReport> {
       setState(() {
         _marathonRecords =
             jsonResponse.map((data) => MarathonRecord.fromJson(data)).toList();
+        _validateSelectedEvent(); // 이 부분을 추가
       });
-      print('Data loaded from $file');
     } catch (e) {
       print('Failed to load data: $e');
       _marathonRecords = [];
+      _validateSelectedEvent(); // 여기도 추가
     }
   }
 
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('누적 기록',
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-            )),
-        backgroundColor: Colors.black26,
+        backgroundColor: Color.fromARGB(238, 241, 98, 3),
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.navigate_before),
+          iconSize: 40,
+          color: Colors.white,
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromARGB(238, 241, 98, 3),
       body: ListView.builder(
         itemCount: _marathonRecords.length,
         itemBuilder: (context, index) {
           var record = _marathonRecords[index];
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             child: Card(
-              color: Colors.white.withAlpha(220),
+              elevation: 8.0,
+              color: Color.fromRGBO(22, 22, 22, 1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18.0),
               ),
               child: InkWell(
                 onTap: () {
                   showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: Color.fromARGB(255, 243, 243, 243),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18.0),
-                      ),
-                      title: Center(
-                        child: Text(
-                          record.name,
-                          style: TextStyle(
-                            color: Color.fromARGB(255, 255, 100, 0),
-                            fontSize: 27,
-                            fontWeight: FontWeight.bold,
+                      context: context,
+                      builder: (BuildContext context) {
+                        return Dialog(
+                          backgroundColor: Color.fromARGB(255, 255, 100, 0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18.0),
                           ),
-                        ),
-                      ),
-                      content: SingleChildScrollView(
-                        child: ListBody(
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 13),
-                              child: Row(
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "참가 날짜",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color: Colors.black.withAlpha(210),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 100.0),
+                            child: Stack(clipBehavior: Clip.none, children: <
+                                Widget>[
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(
+                                      bottom: Radius.circular(18.0),
+                                      top: Radius.circular(50)),
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: ListBody(
+                                      children: [
+                                        // 배번표 사진
+                                        SizedBox(
+                                          height: 100,
                                         ),
-                                      ),
-                                      const SizedBox(
-                                        height: 4,
-                                      ),
-                                      Text(
-                                        "종목",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color: Colors.black.withAlpha(210),
+                                        Row(
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "참가 날짜",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 17,
+                                                    color: Colors.black
+                                                        .withAlpha(210),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "종목",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 17,
+                                                    color: Colors.black
+                                                        .withAlpha(210),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "완주 기록",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 17,
+                                                    color: Colors.black
+                                                        .withAlpha(210),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "페이스(Pace)",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 17,
+                                                    color: Colors.black
+                                                        .withAlpha(210),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(width: 35),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "${record.date}",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontSize: 17,
+                                                    color: Color.fromARGB(
+                                                            255, 255, 100, 0)
+                                                        .withAlpha(220),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "${record.event}",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontSize: 17,
+                                                    color: Color.fromARGB(
+                                                            255, 255, 100, 0)
+                                                        .withAlpha(220),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "${record.record}",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontSize: 17,
+                                                    color: Color.fromARGB(
+                                                            255, 255, 100, 0)
+                                                        .withAlpha(220),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 25,
+                                                ),
+                                                Text(
+                                                  "${record.pace}",
+                                                  style:
+                                                      GoogleFonts.nanumGothic(
+                                                    fontSize: 17,
+                                                    color: Color.fromARGB(
+                                                            255, 255, 100, 0)
+                                                        .withAlpha(220),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          ],
                                         ),
-                                      ),
-                                      const SizedBox(
-                                        height: 4,
-                                      ),
-                                      Text(
-                                        "완주 기록",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color: Colors.black.withAlpha(210),
+                                        SizedBox(
+                                          height: 10,
                                         ),
-                                      ),
-                                      const SizedBox(
-                                        height: 4,
-                                      ),
-                                      Text(
-                                        "페이스(Pace)",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color: Colors.black.withAlpha(210),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    width: 60,
-                                  ),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "${record.date}",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color:
-                                              Color.fromARGB(255, 255, 100, 0)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Color.fromARGB(
+                                                      255, 255, 100, 0)
                                                   .withAlpha(220),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '기록 삭제',
+                                              style: GoogleFonts.nanumGothic(
+                                                fontSize: 15,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              Navigator.of(context)
+                                                  .pop(); // 다이얼로그 닫기
+                                              _deleteMarathonRecord(
+                                                  index); // 기록 삭제
+                                            },
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        "${record.event}",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color:
-                                              Color.fromARGB(255, 255, 100, 0)
-                                                  .withAlpha(220),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 3,
-                                      ),
-                                      Text(
-                                        "${record.record}",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color:
-                                              Color.fromARGB(255, 255, 100, 0)
-                                                  .withAlpha(220),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 3,
-                                      ),
-                                      Text(
-                                        "${record.pace}",
-                                        style: TextStyle(
-                                          fontSize: 17,
-                                          color:
-                                              Color.fromARGB(255, 255, 100, 0)
-                                                  .withAlpha(220),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (record.image != null)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 20),
-                                child: Container(
-                                  width: 200,
-                                  height: 200,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: DecorationImage(
-                                      image: FileImage(record.image!),
-                                      fit: BoxFit.cover,
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                      actions: <Widget>[
-                        Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 180,
-                                height: 40,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Color.fromARGB(255, 255, 100, 0)
-                                            .withAlpha(200),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                              if (record.image != null)
+                                Positioned(
+                                  top: -75,
+                                  left: 50,
+                                  right: 50,
+                                  child: Container(
+                                    width: 150,
+                                    height: 150,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: FileImage(record.image!),
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    '기록 삭제',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    Navigator.of(context).pop(); // 다이얼로그 닫기
-                                    _deleteMarathonRecord(index); // 기록 삭제
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 30),
-                            ],
+                                )
+                            ]),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
+                        );
+                      });
                 },
                 child: Padding(
                   padding:
@@ -376,6 +468,15 @@ class _CumulReportState extends State<CumulReport> {
                         height: 100,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey
+                                  .withOpacity(0.5), // 그림자 색상과 투명도 설정
+                              spreadRadius: 1, // 그림자의 확장 범위
+                              blurRadius: 5, // 그림자의 흐릿한 정도
+                              offset: Offset(0, 0), // 그림자의 위치 조정 (가로, 세로)
+                            ),
+                          ],
                           image: DecorationImage(
                             image: record.image != null
                                 ? FileImage(record.image!)
@@ -391,15 +492,34 @@ class _CumulReportState extends State<CumulReport> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
+                            Row(
+                              children: [
+                                Text(
+                                  record.name,
+                                  style: GoogleFonts.nanumGothic(
+                                    color: Colors.white.withAlpha(230),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                Text(
+                                  " ${record.event}",
+                                  style: GoogleFonts.nanumGothic(
+                                    color: Colors.white.withAlpha(230),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 7),
                             Text(
-                              "${record.name} (${record.event})",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
+                              record.date,
+                              style: GoogleFonts.nanumGothic(
+                                fontSize: 13,
+                                color: Colors.white.withAlpha(230),
                               ),
                             ),
-                            SizedBox(height: 3),
-                            Text(record.date, style: TextStyle(fontSize: 14)),
                           ],
                         ),
                       ),
@@ -428,7 +548,7 @@ class _CumulReportState extends State<CumulReport> {
                     title: Center(
                       child: Text(
                         '새로운 기록',
-                        style: TextStyle(
+                        style: GoogleFonts.nanumGothic(
                           color: Color.fromARGB(255, 255, 100, 0),
                           fontSize: 25,
                           fontWeight: FontWeight.bold,
@@ -444,7 +564,7 @@ class _CumulReportState extends State<CumulReport> {
                             GestureDetector(
                               onTap: () async {
                                 await _pickImage();
-                                setState(() {}); // Update dialog UI
+                                setState(() {});
                               },
                               child: Container(
                                 height: 150,
@@ -475,8 +595,11 @@ class _CumulReportState extends State<CumulReport> {
                                   ),
                                   fillColor: Color.fromARGB(255, 51, 51, 51),
                                   filled: true,
-                                  hintStyle: TextStyle(
+                                  hintStyle: GoogleFonts.nanumGothic(
                                       color: Colors.white.withAlpha(80)),
+                                ),
+                                style: GoogleFonts.nanumGothic(
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -484,10 +607,10 @@ class _CumulReportState extends State<CumulReport> {
                             SizedBox(
                               width: 230,
                               height: 45,
-                              child: TextField(
+                              child: TextFormField(
                                 controller: _dateController,
                                 decoration: InputDecoration(
-                                  hintText: ' 참가 날짜',
+                                  hintText: '날짜 선택',
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(20.0),
                                     borderSide: BorderSide(
@@ -495,32 +618,57 @@ class _CumulReportState extends State<CumulReport> {
                                       width: 1.0,
                                     ),
                                   ),
-                                  fillColor: Color.fromARGB(255, 51, 51, 51),
                                   filled: true,
-                                  hintStyle: TextStyle(
+                                  fillColor: Color.fromARGB(255, 51, 51, 51),
+                                  hintStyle: GoogleFonts.nanumGothic(
                                       color: Colors.white.withAlpha(80)),
                                 ),
+                                style: GoogleFonts.nanumGothic(
+                                  color: Colors.white,
+                                ),
+                                readOnly: true,
+                                onTap: () {
+                                  _selectDate(context);
+                                },
                               ),
                             ),
                             SizedBox(height: 16),
                             SizedBox(
                               width: 230,
                               height: 45,
-                              child: TextField(
-                                controller: _eventController,
-                                decoration: InputDecoration(
-                                  hintText: ' 종목',
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20.0),
-                                    borderSide: BorderSide(
-                                      color: Colors.white,
-                                      width: 1.0,
+                              child: Container(
+                                width: 230,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.white), // 보더 라인 추가
+                                  borderRadius:
+                                      BorderRadius.circular(20.0), // 보더 라운드 처리
+                                  color:
+                                      Color.fromARGB(255, 51, 51, 51), // 배경색 설정
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 11.0),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedEvent,
+                                      style: GoogleFonts.nanumGothic(
+                                          color: Colors.white.withAlpha(80),
+                                          fontSize: 16),
+                                      items: _eventlist.map((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedEvent =
+                                              newValue ?? _eventlist.first;
+                                        });
+                                      },
                                     ),
                                   ),
-                                  fillColor: Color.fromARGB(255, 51, 51, 51),
-                                  filled: true,
-                                  hintStyle: TextStyle(
-                                      color: Colors.white.withAlpha(80)),
                                 ),
                               ),
                             ),
@@ -541,8 +689,11 @@ class _CumulReportState extends State<CumulReport> {
                                   ),
                                   fillColor: Color.fromARGB(255, 51, 51, 51),
                                   filled: true,
-                                  hintStyle: TextStyle(
+                                  hintStyle: GoogleFonts.nanumGothic(
                                       color: Colors.white.withAlpha(80)),
+                                ),
+                                style: GoogleFonts.nanumGothic(
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -563,8 +714,11 @@ class _CumulReportState extends State<CumulReport> {
                                   ),
                                   fillColor: Color.fromARGB(255, 51, 51, 51),
                                   filled: true,
-                                  hintStyle: TextStyle(
+                                  hintStyle: GoogleFonts.nanumGothic(
                                       color: Colors.white.withAlpha(80)),
+                                ),
+                                style: GoogleFonts.nanumGothic(
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -591,12 +745,15 @@ class _CumulReportState extends State<CumulReport> {
                                 ),
                                 child: Text(
                                   '추가',
-                                  style: TextStyle(
+                                  style: GoogleFonts.nanumGothic(
                                     fontSize: 20,
                                     color: Colors.white,
                                   ),
                                 ),
-                                onPressed: _addMarathonRecord,
+                                onPressed: () {
+                                  _handleUpdate();
+                                  _addMarathonRecord();
+                                },
                               ),
                             ),
                             SizedBox(height: 20),
@@ -612,9 +769,10 @@ class _CumulReportState extends State<CumulReport> {
         },
         child: Icon(
           Icons.add,
-          color: Colors.white,
+          size: 30,
+          color: Color.fromARGB(255, 255, 100, 0),
         ),
-        backgroundColor: Color.fromARGB(255, 255, 100, 0),
+        backgroundColor: Color.fromRGBO(22, 22, 22, 1),
       ),
     );
   }

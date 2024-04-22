@@ -14,9 +14,9 @@ class CircularBorderAvatar extends StatelessWidget {
       decoration: BoxDecoration(
           color: Colors.transparent,
           shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(50),
+          borderRadius: BorderRadius.circular(100),
           backgroundBlendMode: BlendMode.clear,
-          border: Border.all(color: borderColor, width: 3),
+          border: Border.all(color: borderColor, width: 5),
           image: DecorationImage(image: NetworkImage(image))),
       width: size,
       height: size,

@@ -1,0 +1,5 @@
+flutter_icons:
+  ios: true
+  android: true
+  image_path: "C:/flutter/dynamic_color_demo-master/assets/images/logo_final.png"
+  remove_alpha_ios: true

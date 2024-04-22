@@ -1,8 +1,12 @@
 import 'package:dynamic_color_demo/widgets/my_container.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import '../user_model.dart';
 
 // 중간 내용에 무릎 각도 추가
 
@@ -24,9 +28,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
   String strikeType = '정상'; // '힐', '포어', '정상'
   String balanceType = '균형'; // '균형', '불균형'
   String footType = '정상'; // '요족', '정상', '평발'
-
   late VideoPlayerController _controller;
-  late String _videoUrl = '';
 
   @override
   void initState() {
@@ -43,58 +45,56 @@ class _AnalysisPageState extends State<AnalysisPage> {
   }
 
   Future<void> fetchLatestDataAndPlayVideo() async {
-    try {
-      final response =
-          await http.get(Uri.parse('http://192.168.0.11:5000/users'));
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        final user = jsonData[0]; // 첫 번째 사용자 데이터
-        final footTypeFromServer = user['foot_type']; // 족형 데이터 가져오기
-        final dataList = user['datas']; // 해당 사용자의 'datas' 필드 접근
-        if (dataList.isNotEmpty) {
-          final latestData = dataList.first;
-          final footPos = latestData['foot_pos'];
-          final shldImb = latestData['shld_imb'];
-          _videoUrl = latestData['video_url']; // _videoUrl 할당
+    UserModel userModel = Provider.of<UserModel>(context, listen: false);
 
-          // strikeType 설정
-          if (footPos == 'mid') {
-            strikeType = '정상';
-            landingType = '훌륭';
-          } else if (footPos == 'heel') {
-            strikeType = '힐';
-            landingType = '주의';
-          } else if (footPos == 'toe') {
-            strikeType = '포어';
-            landingType = '주의';
-          }
+    // UserModel에서 데이터 사용
+    footType = userModel.footType; // 'foot_type' 데이터 사용
+    if (userModel.datas.isNotEmpty) {
+      final latestData = userModel.datas.first;
+      final footPos = latestData['foot_pos'];
+      final shldImb = latestData['shld_imb'];
+      final videoUrl = latestData['video_url'];
 
-          // balanceType 설정
-          balanceType = shldImb == 'TRUE' ? '불균형' : '균형';
-
-          // footType 설정
-          footType = footTypeFromServer == 'normal'
-              ? '정상'
-              : footTypeFromServer == 'high'
-                  ? '요족'
-                  : '평발';
-
-          // _controller 초기화
-          _controller = VideoPlayerController.network(_videoUrl)
-            ..initialize().then((_) {
-              setState(() {
-                if (_controller.value.isInitialized) {
-                  _controller.play();
-                  // _controller.setLooping(true);
-                }
-              });
-            });
-        }
-      } else {
-        throw Exception('Failed to load data');
+      // strikeType 설정
+      if (footPos == 'mid') {
+        strikeType = '정상';
+        landingType = '훌륭';
+      } else if (footPos == 'heel') {
+        strikeType = '힐';
+        landingType = '주의';
+      } else if (footPos == 'toe') {
+        strikeType = '포어';
+        landingType = '주의';
       }
-    } catch (e) {
-      print('Error fetching data: $e');
+
+      // balanceType 설정
+      balanceType = shldImb == 'TRUE' ? '불균형' : '균형';
+
+      // VideoPlayerController 초기화 및 리스너 설정
+      _controller = VideoPlayerController.network(videoUrl)
+        ..initialize().then((_) {
+          setState(() {
+            if (_controller.value.isInitialized) {
+              _controller.play();
+            }
+          });
+          // 오류 리스너 추가
+          _controller.addListener(() {
+            final error = _controller.value.errorDescription;
+            if (error != null) {
+              // 로그 출력 또는 사용자에게 알림
+              print("Playback error: $error");
+              // 오류가 발생하면 다시 초기화 및 재생 시도
+              _controller.initialize().then((_) {
+                _controller.play();
+              }).catchError((e) {
+                print("Error reinitializing the video: $e");
+              });
+            }
+          });
+        }).catchError((e) {
+          print("Error initializing video: $e");
+        });
     }
   }
 
@@ -102,10 +102,18 @@ class _AnalysisPageState extends State<AnalysisPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Color.fromRGBO(22, 22, 22, 1),
+        leading: IconButton(
+          icon: Icon(Icons.navigate_before),
+          iconSize: 40,
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        elevation: 0,
       ),
       body: Container(
-        color: Colors.black,
+        color: Color.fromRGBO(22, 22, 22, 1),
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -114,23 +122,23 @@ class _AnalysisPageState extends State<AnalysisPage> {
               children: <Widget>[
                 // 제목
                 Text(
-                  "나의 러닝 습관                 알아보기",
-                  style: TextStyle(
+                  "나의 러닝 습관\n알아보기",
+                  style: GoogleFonts.nanumGothic(
                       color: Colors.white,
-                      fontSize: 50,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 45,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: 0.2,
-                      height: 1.0),
+                      height: 1.1),
                 ),
-                SizedBox(height: 30),
+                SizedBox(height: 60),
 
                 // 영상
                 Center(
                   child: Text(
-                    "지난 마라톤에서 회원님의 자세를 분석한 결과예요",
-                    style: TextStyle(
+                    "최신 대회에서 회원님의 자세를 분석한 결과예요",
+                    style: GoogleFonts.nanumGothic(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.2,
                         height: 1.0),
@@ -138,7 +146,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                 ),
                 SizedBox(height: 20),
                 Center(
-                  child: _videoUrl.isNotEmpty
+                  child: _controller.value.isInitialized
                       ? Container(
                           width: 330,
                           height: 330,
@@ -146,11 +154,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
                             borderRadius: BorderRadius.circular(50),
                             border: Border.all(
                               color: Color.fromARGB(255, 255, 100, 0),
-                              width: 7,
+                              width: 10,
                             ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(43),
+                            borderRadius: BorderRadius.circular(40),
                             child: AspectRatio(
                               aspectRatio: _controller.value.aspectRatio,
                               child: VideoPlayer(_controller),
@@ -170,25 +178,25 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           child: Center(child: CircularProgressIndicator()),
                         ),
                 ),
-                SizedBox(height: 30),
+                SizedBox(height: 50),
 
                 // 착지 관련 내용
                 Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(
+                      style: GoogleFonts.nanumGothic(
                         color: Colors.white,
-                        fontSize: 35,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 33,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                       ),
                       children: <TextSpan>[
                         TextSpan(
                           text: "착지",
-                          style: TextStyle(
+                          style: GoogleFonts.nanumGothic(
                             color: Color.fromARGB(255, 255, 100, 0),
-                            fontSize: 35,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 33,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -197,10 +205,10 @@ class _AnalysisPageState extends State<AnalysisPage> {
                         ),
                         TextSpan(
                           text: landingType == '훌륭' ? "훌륭" : "주의",
-                          style: TextStyle(
+                          style: GoogleFonts.nanumGothic(
                             color: Color.fromARGB(255, 255, 100, 0),
-                            fontSize: 35,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 33,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -239,11 +247,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
                       // 조건에 따른 다른 강조 표시
                       if (strikeType == '힐')
                         Positioned(
-                          top: 20.0,
-                          left: 42,
+                          top: 26.0,
+                          left: 40,
                           child: Container(
-                            width: 110,
-                            height: 113,
+                            width: 105,
+                            height: 100,
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Colors.red,
@@ -255,11 +263,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
                         ),
                       if (strikeType == '정상')
                         Positioned(
-                          top: 20.0,
-                          left: 140,
+                          top: 26.0,
+                          left: 130,
                           child: Container(
-                            width: 100,
-                            height: 113,
+                            width: 90,
+                            height: 100,
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Colors.red,
@@ -271,11 +279,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
                         ),
                       if (strikeType == '포어')
                         Positioned(
-                          top: 20.0,
-                          left: 230,
+                          top: 26.0,
+                          left: 215,
                           child: Container(
-                            width: 115,
-                            height: 113,
+                            width: 100,
+                            height: 100,
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Colors.red,
@@ -286,16 +294,17 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                         ),
                       Positioned(
-                        bottom: 10.0,
+                        top: 135,
+                        // bottom: 10.0,
                         left: 20.0,
                         right: 20.0,
                         child: Padding(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
                           child: Column(
                             children: [
                               if (strikeType == '힐')
                                 fillcontext(
-                                  "이상적인 착지 범위보다 더 앞으로 착지하고 있습니다.  지면에 뒤꿈치가 먼저 닿는 힐 스트라이크는 무릎 통증과 햄스트링 부상을 유발할 위험성이 큽니다. 미드풋 스트라이크로  착지하는 연습을 해보는 것을 추천합니다. 알맞은 무릎 각도와 함께 안전한 러닝하세요!",
+                                  "착지 시 뒤꿈치로 착지하고 있습니다. 지면에 뒤꿈치가 먼저 닿는 힐 스트라이크는 무릎 통증과 햄스트링 부상을 유발할 위험성이 큽니다. 미드풋 스트라이크로  착지하는 연습을 해보는 것을 추천합니다. 알맞은 무릎 각도와 함께 안전한 러닝하세요!",
                                 ),
                               if (strikeType == '정상')
                                 fillcontext(
@@ -303,7 +312,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                                 ),
                               if (strikeType == '포어')
                                 fillcontext(
-                                  "포어풋 문구",
+                                  "착지 시 앞꿈치로 착지하고 있습니다. 지면에 앞꿈치가 먼저 닿는 힐 스트라이크는 무릎 통증과 햄스트링 부상을 유발할 위험성이 큽니다. 미드풋 스트라이크로  착지하는 연습을 해보는 것을 추천합니다. 알맞은 무릎 각도와 함께 안전한 러닝하세요!",
                                 ),
                             ],
                           ),
@@ -323,45 +332,41 @@ class _AnalysisPageState extends State<AnalysisPage> {
                   ),
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(
+                      style: GoogleFonts.nanumGothic(
                         color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 33,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                       ),
                       children: <TextSpan>[
                         TextSpan(
                           text: "상체 균형",
-                          style: TextStyle(
+                          style: GoogleFonts.nanumGothic(
                             color: Color.fromARGB(255, 255, 100, 0),
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 31,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
                           ),
                         ),
                         TextSpan(
                           text: "이 ",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.2,
+                          style: GoogleFonts.nanumGothic(
+                            fontSize: 31,
                           ),
                         ),
                         TextSpan(
                           text: balanceType == '균형' ? "안정적" : "불안정",
-                          style: TextStyle(
+                          style: GoogleFonts.nanumGothic(
                             color: Color.fromARGB(255, 255, 100, 0),
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 31,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
                           ),
                         ),
                         TextSpan(
                           text: balanceType == '균형' ? "이에요" : "해요",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.2,
+                          style: GoogleFonts.nanumGothic(
+                            fontSize: 31,
                           ),
                         ),
                       ],
@@ -438,7 +443,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                   children: [
                     Text(
                       "족형에 따른 주의사항",
-                      style: TextStyle(
+                      style: GoogleFonts.nanumGothic(
                           color: Colors.white,
                           fontSize: 29,
                           fontWeight: FontWeight.bold,
@@ -491,52 +496,52 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                         ),
                         Positioned(
-                          top: 13,
+                          top: 16,
                           left: 175.0,
                           child: Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: Text(
                               "회원님의 족형은...",
-                              style: TextStyle(
+                              style: GoogleFonts.nanumGothic(
                                 color: Colors.white,
-                                fontSize: 20,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ),
                         Positioned(
-                          top: 32,
+                          top: 35,
                           left: 175.0,
                           child: Padding(
                             padding: const EdgeInsets.all(5.0),
                             child: Column(
                               children: [
-                                if (footType == '평발')
+                                if (footType == 'flat')
                                   Text(
                                     "평발",
-                                    style: TextStyle(
+                                    style: GoogleFonts.nanumGothic(
                                       color: Colors.white,
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w900,
+                                      fontSize: 35,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                if (footType == '정상')
+                                if (footType == 'normal')
                                   Text(
                                     "정상",
-                                    style: TextStyle(
+                                    style: GoogleFonts.nanumGothic(
                                       color: Colors.white,
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w900,
+                                      fontSize: 35,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                if (footType == '요족')
+                                if (footType == 'high')
                                   Text(
                                     "요족",
-                                    style: TextStyle(
+                                    style: GoogleFonts.nanumGothic(
                                       color: Colors.white,
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w900,
+                                      fontSize: 35,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                               ],
@@ -544,24 +549,48 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                         ),
                         Positioned(
-                          top: 88,
+                          top: 90,
                           left: 172.0,
                           right: 13,
                           child: Padding(
                             padding: const EdgeInsets.only(left: 8),
                             child: Column(
                               children: [
-                                if (footType == '평발')
-                                  fillcontext(
+                                if (footType == 'flat')
+                                  Text(
                                     "평발은 충격 흡수 능력이 낮아 피로 골절 및 신부전 증후군의 위험이 높습니다.",
+                                    textAlign: TextAlign.justify,
+                                    style: GoogleFonts.nanumGothic(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
+                                      letterSpacing: 0.2,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                if (footType == '정상')
-                                  fillcontext(
-                                    "정상발임요",
+                                if (footType == 'normal')
+                                  Text(
+                                    "평발은 충격 흡수 능력이 낮아 피로 골절 및 신부전 증후군의 위험이 높습니다.",
+                                    textAlign: TextAlign.justify,
+                                    style: GoogleFonts.nanumGothic(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
+                                      letterSpacing: 0.2,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                if (footType == '요족')
-                                  fillcontext(
-                                    "요족임요",
+                                if (footType == 'high')
+                                  Text(
+                                    "요족은 체중의 앞력이 앞뒤로 집중되어 지간 신경종 및 아킬레스건 파손 위험이 있습니다.",
+                                    textAlign: TextAlign.justify,
+                                    style: GoogleFonts.nanumGothic(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
+                                      letterSpacing: 0.2,
+                                      height: 1.2,
+                                    ),
                                   ),
                               ],
                             ),
@@ -569,31 +598,47 @@ class _AnalysisPageState extends State<AnalysisPage> {
                         ),
                         Positioned(
                           top: 185,
-                          left: 10,
-                          right: 15,
+                          left: 15,
+                          right: 20,
                           child: Padding(
                             padding: const EdgeInsets.only(left: 8),
                             child: Column(
                               children: [
-                                if (footType == '평발')
+                                if (footType == 'flat')
                                   Text(
                                     "발을 더 잘 지지해주는 러닝화를 선택하는 것이 중요합니다. 충격을 흡수하는 지지대가 있는 신발을 찾는 것이 좋습니다. 러닝 후 충분한 휴식과 스트레칭을 통해 발과 다리 근육을 풀어 부상을 예방하세요.",
                                     textAlign: TextAlign.justify,
-                                    style: TextStyle(
+                                    style: GoogleFonts.nanumGothic(
                                       color: Colors.white,
                                       fontSize: 19,
                                       fontWeight: FontWeight.w300,
                                       letterSpacing: 0.2,
-                                      height: 1.3,
+                                      height: 2,
                                     ),
                                   ),
-                                if (footType == '정상')
-                                  fillcontext(
-                                    "정상발임요",
+                                if (footType == 'normal')
+                                  Text(
+                                    "발을 더 잘 지지해주는 러닝화를 선택하는 것이 중요합니다. 충격을 흡수하는 지지대가 있는 신발을 찾는 것이 좋습니다. 러닝 후 충분한 휴식과 스트레칭을 통해 발과 다리 근육을 풀어 부상을 예방하세요.",
+                                    textAlign: TextAlign.justify,
+                                    style: GoogleFonts.nanumGothic(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
+                                      letterSpacing: 0.2,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                if (footType == '요족')
-                                  fillcontext(
+                                if (footType == 'high')
+                                  Text(
                                     "요족임요",
+                                    textAlign: TextAlign.justify,
+                                    style: GoogleFonts.nanumGothic(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
+                                      letterSpacing: 0.2,
+                                      height: 1.2,
+                                    ),
                                   ),
                               ],
                             ),
@@ -611,7 +656,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                 Center(
                   child: Text(
                     "족형에 대해 더 자세히 알고싶나요?",
-                    style: TextStyle(
+                    style: GoogleFonts.nanumGothic(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -631,18 +676,16 @@ class _AnalysisPageState extends State<AnalysisPage> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
-                          height: 1,
-                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               "▷ 상세 내용 확인",
-                              style: TextStyle(
+                              style: GoogleFonts.nanumGothic(
                                 color: Colors.white,
-                                fontSize: 20,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.01,
                               ),
@@ -663,12 +706,15 @@ class _AnalysisPageState extends State<AnalysisPage> {
                 ),
                 Text(
                   "총 분석 결과",
-                  style: TextStyle(
+                  style: GoogleFonts.nanumGothic(
                     color: Color.fromARGB(255, 255, 100, 0),
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.1,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
                   ),
+                ),
+                SizedBox(
+                  height: 8,
                 ),
                 MyContainer(
                   color: Color.fromARGB(255, 51, 51, 51),
@@ -684,7 +730,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                           Text(
                             "1. 분석 결과 1번",
-                            style: TextStyle(
+                            style: GoogleFonts.nanumGothic(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -692,7 +738,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                           Text(
                             "2. 분석 결과 2번",
-                            style: TextStyle(
+                            style: GoogleFonts.nanumGothic(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -700,7 +746,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
                           ),
                           Text(
                             "3. 분석 결과 3번",
-                            style: TextStyle(
+                            style: GoogleFonts.nanumGothic(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -711,9 +757,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
                 ),
               ],
             ),
-
-            // sectionTitle("총분석 결과"),
-            // roundedContainer(context, "총분석 결과 내용: 결과 3줄 정리"),
           ),
         ),
       ),
@@ -723,7 +766,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
   Widget sectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: GoogleFonts.nanumGothic(
         fontWeight: FontWeight.bold,
         fontSize: 22,
       ),
@@ -734,7 +777,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
     return Text(
       text,
       textAlign: TextAlign.justify,
-      style: TextStyle(
+      style: GoogleFonts.nanumGothic(
           color: Colors.white.withAlpha(220),
           fontWeight: FontWeight.w700,
           fontSize: 16,
@@ -750,7 +793,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(text, style: TextStyle(fontSize: 18)),
+      child: Text(text, style: GoogleFonts.nanumGothic(fontSize: 18)),
     );
   }
 }
