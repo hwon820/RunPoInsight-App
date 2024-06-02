@@ -1,6 +1,6 @@
-# dynamic_color_demo
+# Run Po Insight
 
-A new Flutter project.
+마라톤 부상 방지 실시간 자세 분석 서비스
 
 ## Getting Started
 
