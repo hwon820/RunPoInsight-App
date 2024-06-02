@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:dynamic_color_demo/widgets/my_container.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +31,12 @@ class _AnalysisPageState extends State<AnalysisPage> {
   String balanceType = '균형'; // '균형', '불균형'
   String footType = '정상'; // '요족', '정상', '평발'
   late VideoPlayerController _controller;
+  String l1_message = '';
+  String l2_message = '';
+  String l3_message = '';
+  String cad = "";
+
+  String img_url = '';
 
   @override
   void initState() {
@@ -49,11 +57,17 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
     // UserModel에서 데이터 사용
     footType = userModel.footType; // 'foot_type' 데이터 사용
+
     if (userModel.datas.isNotEmpty) {
       final latestData = userModel.datas.first;
       final footPos = latestData['foot_pos'];
       final shldImb = latestData['shld_imb'];
       final videoUrl = latestData['video_url'];
+      final l1_mes = latestData['l1_mes'];
+      final l2_mes = latestData['l2_mes'];
+      final l3_mes = latestData['l3_mes'];
+      final cad_now = latestData['cad'];
+      final img = latestData['analysis_img'];
 
       // strikeType 설정
       if (footPos == 'mid') {
@@ -69,6 +83,14 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
       // balanceType 설정
       balanceType = shldImb == 'TRUE' ? '불균형' : '균형';
+
+      l1_message = l1_mes;
+      l2_message = l2_mes;
+      l3_message = l3_mes;
+
+      cad = cad_now;
+
+      img_url = img;
 
       // VideoPlayerController 초기화 및 리스너 설정
       _controller = VideoPlayerController.network(videoUrl)
@@ -610,10 +632,10 @@ class _AnalysisPageState extends State<AnalysisPage> {
                                     textAlign: TextAlign.justify,
                                     style: GoogleFonts.nanumGothic(
                                       color: Colors.white,
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w300,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w200,
                                       letterSpacing: 0.2,
-                                      height: 2,
+                                      height: 1.2,
                                     ),
                                   ),
                                 if (footType == 'normal')
@@ -700,6 +722,64 @@ class _AnalysisPageState extends State<AnalysisPage> {
                   ),
                 ),
 
+                // 케이던스
+                Container(
+                  height: 50,
+                ),
+                Text(
+                  "케이던스 관련 주의사항",
+                  style: GoogleFonts.nanumGothic(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                SizedBox(
+                  height: 8,
+                ),
+                MyContainer(
+                  color: Color.fromARGB(255, 51, 51, 51),
+                  borderRadius: BorderRadius.circular(30),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 350, // 칸 가로 확보 용
+                          ),
+                          Container(
+                            child: Image.network(
+                              "$img_url",
+                            ),
+                            height: 150,
+                            width: 300,
+                          ),
+                          SizedBox(
+                            height: 5, // 칸 가로 확보 용
+                          ),
+                          Text(
+                            "이번 대회 케이던스: $cad",
+                            style: GoogleFonts.nanumGothic(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            "평균 케이던스 보다 낮습니다.",
+                            style: GoogleFonts.nanumGothic(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ]),
+                  ),
+                ),
+
                 // 총분석
                 Container(
                   height: 50,
@@ -729,26 +809,32 @@ class _AnalysisPageState extends State<AnalysisPage> {
                             width: 350, // 칸 가로 확보 용
                           ),
                           Text(
-                            "1. 분석 결과 1번",
+                            "1. $l1_message",
                             style: GoogleFonts.nanumGothic(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(
+                            height: 4,
+                          ),
                           Text(
-                            "2. 분석 결과 2번",
+                            "2. $l2_message",
                             style: GoogleFonts.nanumGothic(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(
+                            height: 4,
+                          ),
                           Text(
-                            "3. 분석 결과 3번",
+                            "3. $l3_message",
                             style: GoogleFonts.nanumGothic(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),

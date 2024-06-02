@@ -150,7 +150,7 @@ class MyInfo extends StatelessWidget {
                   print("push 수정하기");
                 },
                 child: const Text(
-                  "내 정보 수정",
+                  "내 정보 입력",
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,

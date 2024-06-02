@@ -1,64 +1,130 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 import 'package:dynamic_color_demo/service_pages/Cumulated_report.dart';
 import 'package:dynamic_color_demo/service_pages/analysis_page.dart';
-import 'package:dynamic_color_demo/bottombar_pages/bookmark_page.dart';
+import 'package:dynamic_color_demo/service_pages/my_info.dart';
 import 'package:dynamic_color_demo/widgets/circular_border_avatar.dart';
 import 'package:dynamic_color_demo/widgets/my_container.dart';
-import 'package:dynamic_color_demo/service_pages/my_info.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
+import 'package:web_socket_channel/io.dart';
 import 'config.dart';
+import 'long_polling_service.dart';
 import 'user_model.dart';
+import 'notifications_model.dart';
 import 'bottombar_pages/notification_page.dart';
-import 'bottombar_pages/bookmark_page.dart';
 import 'bottombar_pages/settings_page.dart';
+import 'bottombar_pages/bookmark_page.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-void main() {
-  Config.init(); // Config 설정 초기화
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Config.init();
+  final notificationModel = NotificationModel();
+  final userModel = UserModel();
+  final notificationChannel =
+      IOWebSocketChannel.connect('ws://your-server.com/ws');
+
+  notificationChannel.stream.listen((message) {
+    notificationModel.addNotification(message);
+    showNotification(message);
+  });
+
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => UserModel()),
+      ChangeNotifierProvider(create: (_) => userModel),
+      ChangeNotifierProvider(create: (_) => notificationModel),
+      Provider(
+        create: (_) => LongPollingService(
+          serverUrl:
+              "http://192.168.0.13:5000/long_polling/1/2024-04-24T03:00:00Z",
+          userId: '111', // 예시 ID
+          notificationModel: NotificationModel(), // 의존성 주입
+        ),
+      ),
     ],
-    child: const DynamicColorDemo(),
+    child: DynamicColorDemo(notificationChannel: notificationChannel),
   ));
 }
 
-// void main() {
-//   Config.init();
-//   runApp(const DynamicColorDemo());
+// final IOWebSocketChannel channel = IOWebSocketChannel.connect('ws://your-server.com/ws');
+
+// void listenToWebSocket() {
+//   channel.stream.listen((message) {
+//     final decodedMessage = jsonDecode(message);
+//     Provider.of<NotificationModel>(context, listen: false)
+//         .addNotification({
+//       'message': decodedMessage['message'],
+//       'time': DateTime.now().toString()
+//     });
+//   });
 // }
 
-// 돈 터치 영역
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+void setupNotifications() async {
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+}
+
+void showNotification(String message) async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+    'your channel id',
+    'your channel name',
+    channelDescription: 'your channel description',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: false,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await flutterLocalNotificationsPlugin.show(
+    0, // Notification ID
+    'New Notification', // Notification Title
+    message, // Notification Body
+    platformChannelSpecifics,
+  );
+}
+
+// -----------------------------------------------
+
 const seedColor = Colors.white;
 const outPadding = 25.0;
 
 class DynamicColorDemo extends StatelessWidget {
-  const DynamicColorDemo({Key? key}) : super(key: key);
+  final IOWebSocketChannel notificationChannel;
+
+  DynamicColorDemo({Key? key, required this.notificationChannel})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
-
-        // 이 부분 함부로 건들지 맙시다...
-        theme: ThemeData(
-          colorSchemeSeed: seedColor,
-          brightness: Brightness.dark,
-          textTheme: GoogleFonts.notoSansNKoTextTheme(
-            Theme.of(context).textTheme,
-          ),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorSchemeSeed: seedColor,
+        brightness: Brightness.dark,
+        textTheme: GoogleFonts.notoSansNKoTextTheme(
+          Theme.of(context).textTheme,
         ),
-        home: SplashScreen());
+      ),
+      home: SplashScreen(),
+    );
   }
 }
-//----------------
 
-// 로딩 화면
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -68,6 +134,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    setupNotifications();
     Timer(Duration(seconds: 10), () {
       Navigator.of(context)
           .pushReplacement(MaterialPageRoute(builder: (_) => LoginPage()));
@@ -327,7 +394,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     HomeScreen(),
     BookmarkScreen(),
-    NotificationScreen(),
+    NotificationPage(),
     SettingsScreen(), // 설정 페이지 나중 구현
   ];
 
